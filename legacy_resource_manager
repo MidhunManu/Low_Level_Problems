@@ -1,0 +1,48 @@
+#include <memory>
+#include <vector>
+#include <iostream>
+
+// --- MOCK LEGACY API (DO NOT MODIFY) ---
+struct LegacyHandle {
+    int id;
+};
+
+// Global log to track closed resource IDs for verification
+static std::vector<double> closed_log;
+
+LegacyHandle* open_legacy_resource(int id) {
+    return new LegacyHandle{id};
+}
+
+void close_legacy_resource(LegacyHandle* handle) {
+    if (handle) {
+        closed_log.push_back(static_cast<double>(handle->id));
+        delete handle;
+    }
+}
+// ---------------------------------------
+
+class SmartResourceWrapper {
+private:
+    // Hint: Stateless lambdas convert to function pointers.
+    // Use this type for the unique_ptr deleter.
+    using DeleterType = void(*)(LegacyHandle*);
+
+    // TODO: Declare the std::unique_ptr member named 'resource'
+    // std::unique_ptr<...>
+    std::unique_ptr<LegacyHandle, DeleterType> resource;
+
+public:
+    SmartResourceWrapper(int id)
+    : resource(
+        open_legacy_resource(id),
+        [] (LegacyHandle* handle) {
+            close_legacy_resource(handle);
+        }
+    ) {}
+
+    int getId() const {
+        if (resource.get() == nullptr) return -1;
+        return resource.get()->id;
+    }
+};
